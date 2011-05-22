@@ -1,4 +1,10 @@
 Cerealize
 =========
 
+By Gregory Eric Sanderson Turcot Temlett MacDonnell Forbes
+
+All code is licensed under GPLv3
+
 Experiment in trying to make a minimalistic framework for serializing object structures into interchangeable data formats like XML, JSON and YAML
+
+
