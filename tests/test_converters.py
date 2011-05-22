@@ -80,13 +80,90 @@ class TestUnicodeStringConverter( unittest.TestCase ):
 
         self.assertEquals( self.converter("bla"), "bla" )
 
+class MockCerealizer(object):
+
+    def __init__(self):
+        self.list_converter = None
+
+    def updated_args(self, args):
+        return args
+
+    def convert( self, data, **kwargs ):
+        if type(data) is list:
+            return self.list_converter( data )
+        else:
+            return data
+
+class TestListConverter(unittest.TestCase):
+
+    def setUp(self):
+        self.converter = self.create_list()
+
+    def create_list(self, stacklimit=None):
+        counter = StackCounter(stacklimit)
+        cerealizer = MockCerealizer()
+        converter = List( counter, cerealizer )
+        cerealizer.list_converter = converter
+        return converter
+
+    def test_convert_empty_list(self):
+        self.assertEquals( self.converter( [] ), [] )
+
+    def test_convert_list_with_none(self):
+        self.assertEquals( self.converter( [None] ), [None] )
+
+    def test_convert_list_one_element(self):
+        self.assertEquals( self.converter( [1] ), [1] )
+
+    def test_convert_list_not_same_reference(self):
+        l = [1,2,3]
+        self.assertFalse( self.converter( l ) is l )
+
+    def test_convert_list_multiple_integers(self):
+        self.assertEquals( self.converter( [1,2,3,4,5,6,7,8,9,0] ),
+                [1,2,3,4,5,6,7,8,9,0] )
+
+    def test_convert_list_mixed_types(self):
+        e = [1, 'a', None, 1.23456879, True]
+        self.assertEquals( self.converter( e ), e )
+
+    def test_convert_nested_list(self):
+        e = [1,2,3, [4,5,6] ]
+        self.assertEquals( self.converter( e ), e )
+
+    def test_convert_three_nested_lists(self):
+        e = [1,2,3, [4,5,6, [7,8,9] ], 10, 11, 12 ]
+        self.assertEquals( self.converter( e ), e )
+
+    def test_convert_nested_mixed_list(self):
+        e = [1,'a',True, [2,'b',None, [3.123456789, 'c', False], 'abcd'], 1234, True]
+        self.assertEquals( self.converter( e ), e )
+
+    def test_convert_list_stack_limit_one(self):
+        converter = self.create_list(1)
+        l = [1,2,3, [4,5,6]]
+        r = [1,2,3,None]
+        self.assertEquals( converter( l ), r )
+
+    def test_convert_list_stack_limit_two(self):
+        converter = self.create_list(2)
+        l = [1,2,3, [4,5,6, [7,8,9] ] ]
+        r = [1,2,3, [4,5,6, None] ]
+        self.assertEquals( converter( l ), r )
+
+    def test_convert_list_stack_limit_dispered(self):
+        converter = self.create_list(2)
+        l = [ 1,2,3, [4,5,6, [7,8,9], 10, [11,12,13], 14, [ [] ] ] ]
+        r = [ 1,2,3, [4,5,6, None,    10, None,       14, None,  ] ]
+        self.assertEquals( converter( l ), r )
+
 if __name__ == '__main__':
 
     import os.path
     import sys
     sys.path.insert(0, os.path.join( '..', 'src' ) )
-    print sys.path
     from converters import *
+    from util import StackCounter
     unittest.main()
 else:
     from converters import *

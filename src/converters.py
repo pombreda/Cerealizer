@@ -20,3 +20,24 @@ class UnicodeString( Converter ):
 
     def __call__( self, data, **kwargs ):
         return unicode( data, kwargs.get( 'encoding', self.encoding ) )
+
+class List( Converter ):
+
+    def __init__(self, stack_counter, cerealizer ):
+        self.stack_counter = stack_counter
+        self.cerealizer = cerealizer
+
+    def __call__(self, data, **kwargs):
+        if( self.stack_counter.can_increase() ):
+
+            args = self.cerealizer.updated_args( kwargs )
+
+            self.stack_counter.increase()
+            result = [ self.cerealizer.convert( x, **args ) for x in data ]
+            self.stack_counter.decrease()
+
+            return result
+
+        else:
+            return None
+
