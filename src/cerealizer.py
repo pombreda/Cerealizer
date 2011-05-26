@@ -1,19 +1,20 @@
 import converters
 from types import NoneType
-from util import StackCounter
+from util import StackCounter, KeyRemover
 
 class Cerealizer(object):
 
     def __init__( self, **kwargs ):
 
         self.args = {
-            'nulls' : False,
-            'stacklimit' : None
+            'stacklimit' : None,
+            'removekeys' : {},
         }
 
         self.args.update( kwargs )
 
         stack_counter = StackCounter( self.args['stacklimit'] )
+        key_remover = KeyRemover( self.args['removekeys'] )
         conserve = converters.Conserve()
 
         self.converters = { int : conserve,
@@ -22,7 +23,8 @@ class Cerealizer(object):
                 str : converters.UnicodeString(),
                 unicode : conserve,
                 NoneType : conserve,
-                list : converters.List( stack_counter, self )
+                list : converters.List( self, stack_counter ),
+                dict : converters.Dict( self, stack_counter, key_remover )
             }
 
     def updated_args( self, args ):
@@ -33,11 +35,10 @@ class Cerealizer(object):
     def find_converter( self, datatype ):
         return self.converters.get( datatype )
 
-    def convert( self, data, **kwargs ):
-        args = self.updated_args( kwargs )
+    def convert( self, data, *args, **kwargs ):
         converter = self.find_converter( type( data ) )
         if not converter:
             raise TypeError("could not find converter for type %s" % type( data ) )
-        return converter( data, **args )
+        return converter( data, *args, **kwargs )
 
 
